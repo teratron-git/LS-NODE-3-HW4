@@ -1,58 +1,53 @@
 const fs = require('fs');
 const path = require('path');
-const formidable = require('formidable');
+const util = require('util');
+const unlink = util.promisify(fs.unlink);
+const rename = util.promisify(fs.rename);
 const uploadCheck = require('../utils/productUploadCheck');
-const Product = require('../models/productsModel');
-const Skill = require('../models/skillsModel');
+const db = require('../models/db');
 
-module.exports.get = function (req, res) {
-  res.render('admin', { title: 'Панель администратора', msg: req.query.msg });
-};
-
-module.exports.upload = async (req, res, next) => {
-  const form = new formidable.IncomingForm();
-  const upload = path.join('./public', 'upload');
-
-  if (!fs.existsSync(upload)) {
-    fs.mkdirSync(upload);
-  }
-
-  form.uploadDir = path.join(process.cwd(), upload);
-
-  form.parse(req, function (err, fields, files) {
-    if (err) {
-      return next(err);
-    }
-
-    const uploadItem = uploadCheck(fields, files);
-
-    if (uploadItem.err) {
-      fs.unlinkSync(files.photo.path);
-      return res.redirect(`/?msg=${uploadItem.status}`);
-    }
-
-    const fileName = path.join(upload, files.photo.name);
-
-    fs.rename(files.photo.path, fileName, async (err) => {
-      if (err) {
-        console.error(err.message);
-        return;
-      }
-      const dir = fileName.substr(fileName.indexOf('\\'));
-      const productData = {
-        name: fields.name,
-        price: fields.price,
-        src: dir,
-      };
-      const product = new Product(productData);
-      await product.save();
-      res.redirect('/admin?msg=Новый товар успешно загружен');
-    });
+module.exports.get = async (ctx, next) => {
+  await ctx.render('pages/admin', {
+    title: 'Панель администратора',
+    msg: ctx.request.query.msg,
   });
 };
 
-module.exports.skills = async (req, res) => {
-  const skill = new Skill(req.body);
-  await skill.save();
-  res.redirect('/admin?msg=Данные успешно изменены');
+module.exports.upload = async (ctx, next) => {
+  const { name, price } = ctx.request.body;
+  const img = ctx.request.files.photo;
+  const responseError = uploadCheck(name, price, img.name, img.size);
+
+  if (responseError) {
+    await unlink(img.path);
+
+    await ctx.redirect(`/admin?msg=${responseError.mes}`);
+    return;
+  }
+
+  const fileName = path.join(process.cwd(), 'public', 'upload', img.name);
+  const errUpload = await rename(img.path, fileName);
+
+  if (errUpload) {
+    await ctx.redirect('/admin?msg=При загрузке картинки произошла ошибка');
+    return;
+  }
+
+  db.get('products')
+    .push({ name, price, src: path.join('upload', img.name) })
+    .write();
+
+  await ctx.redirect('/admin?msg=Продукт успешно загружен');
+};
+
+module.exports.skills = async (ctx, next) => {
+  const skills = db.get('skills').value();
+
+  for (const prop in ctx.request.body) {
+    skills[prop].number = ctx.request.body[prop];
+  }
+
+  db.update('skills', skills).write();
+
+  await ctx.redirect('/admin?msg=Данные успешно обновлены');
 };

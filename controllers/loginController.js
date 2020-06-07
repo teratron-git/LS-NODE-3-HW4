@@ -1,23 +1,25 @@
-const User = require('../models/usersModel');
+const db = require('../models/db');
+const pass = require('../utils/pass');
 
-module.exports.get = function (req, res) {
-  if (req.session.isAdmin) {
-    res.redirect('/admin');
+module.exports.get = async (ctx, next) => {
+  if (ctx.session.isAuthorized) {
+    ctx.redirect('/admin');
   } else {
-    res.render('login', {
+    await ctx.render('pages/login', {
       title: 'Авторизация',
-      msg: req.query.msg,
+      msg: ctx.request.query.msg,
     });
   }
 };
 
-module.exports.post = (req, res) => {
-  const user = User.findUser(req.body);
+module.exports.post = async (ctx, next) => {
+  const { email, password } = ctx.request.body;
+  const user = db.get('user').value();
 
-  if (user.length !== 0) {
-    req.session.isAdmin = true;
-    res.redirect('/admin');
+  if (user.email === email && pass.checkPassword(password)) {
+    ctx.session.isAuthorized = true;
+    await ctx.redirect('/admin');
   } else {
-    res.redirect('/login?msg=Пользователь с такими данными не найден!');
+    await ctx.redirect('/login?msg=Пользователь с такими данными не найден!');
   }
 };
