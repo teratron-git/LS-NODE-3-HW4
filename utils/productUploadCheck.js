@@ -1,12 +1,26 @@
-module.exports = (fields, files) => {
-  if (files.photo.name === '' || files.photo.size === 0) {
-    return { status: 'Изображение не загружено', err: true };
+module.exports = (productName, productPrice, fileName, fileSize) => {
+  let response;
+
+  if (productName === '') {
+    response = {
+      mes: 'Укажите ниаменование продукта',
+      status: 'Error',
+    };
   }
-  if (!fields.name) {
-    return { status: 'Название товара не указано', err: true };
+
+  if (+productPrice < 0) {
+    response = {
+      mes: 'Укажите положительную цену',
+      status: 'Error',
+    };
   }
-  if (!fields.price) {
-    return { status: 'Цена товара не указана', err: true };
+
+  if (fileName === '' || fileSize === 0) {
+    response = {
+      mes: 'Не загружена картинка',
+      status: 'Error',
+    };
   }
-  return { status: 'OK', err: false };
+
+  return response;
 };

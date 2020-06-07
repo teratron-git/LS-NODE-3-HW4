@@ -1,7 +1,7 @@
-module.exports = (req, res, next) => {
-  if (req.session.isAdmin) {
-    next();
+module.exports = async (ctx, next) => {
+  if (ctx.session.isAuthorized) {
+    await next();
   } else {
-    res.redirect('/login');
+    ctx.redirect('/login');
   }
 };

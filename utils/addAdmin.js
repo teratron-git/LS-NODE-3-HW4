@@ -3,8 +3,8 @@ const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const User = require('../models/usersModel');
-const pass = require('./pass');
+const db = require('../models/db');
+const pass = require('./password');
 
 let email = '';
 let hash = '';
@@ -21,8 +21,6 @@ rl.question('Email: ', (answer) => {
   });
 });
 
-rl.on('close', async () => {
-  const newUser = new User({ email, hash, salt });
-
-  await newUser.save();
+rl.on('close', () => {
+  db.set('user', { email, hash, salt }).write();
 });
