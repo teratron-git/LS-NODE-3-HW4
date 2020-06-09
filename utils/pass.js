@@ -11,7 +11,6 @@ module.exports.setPassword = (password) => {
 
 module.exports.checkPassword = (password) => {
   const user = db.get('user').value();
-
   const newHash = crypto
     .pbkdf2Sync(password, user.salt, 1000, 512, 'sha512')
     .toString('hex');

@@ -1,10 +1,10 @@
 const Router = require('koa-router');
-const router = new Router();
 const koaBody = require('koa-body');
 const mainController = require('../controllers/mainController');
 const loginController = require('../controllers/loginController');
 const adminController = require('../controllers/adminController');
 const isAdmin = require('../utils/isAdmin');
+const router = new Router();
 
 router.get('/', mainController.get);
 router.post('/', koaBody(), mainController.post);
