@@ -1,39 +1,39 @@
-const nodemailer = require('nodemailer');
-const sendgridTransport = require('nodemailer-sendgrid-transport');
+const sgMail = require('@sendgrid/mail');
+const db = require('../models/db');
 
-const Product = require('../models/productsModel');
-const Skill = require('../models/skillsModel');
+sgMail.setApiKey('>>> API ключ должен быть тут <<<');
 
-const transporter = nodemailer.createTransport(
-  sendgridTransport({
-    auth: {
-      api_key: '>>>API ключ должен быть тут<<<',
-    },
-  })
-);
+module.exports.get = async (ctx, next) => {
+  const products = db.get('products').value() || [];
+  const skills = db.get('skills').value() || [];
 
-module.exports.get = async (req, res) => {
-  const products = await Product.readDb();
-  const skills = await Skill.readDb();
-  res.render('index', {
+  await ctx.render('pages/index', {
     title: 'Личная страница Архипова',
     products,
     skills,
-    msg: req.query.msg,
+    msg: ctx.request.query.msg,
   });
 };
 
-module.exports.post = async (req, res) => {
+module.exports.post = async (ctx, next) => {
+  const msg = {
+    to: 'temp@mail.ru',
+    from: ctx.request.body.email,
+    subject: 'New message from your website',
+    text: `New message from ${ctx.request.body.name}. Email: ${ctx.request.body.email}. Message: ${ctx.request.body.message}`,
+    html: `<h3>New message from ${ctx.request.body.name}.</h3><p>Email: ${ctx.request.body.email}.</p><p>Message: ${ctx.request.body.message}</p>`,
+  };
+
   try {
-    await transporter.sendMail({
-      to: 'temp@mail.ru',
-      from: req.body.email,
-      subject: `Message from ${req.body.name}, email: ${req.body.email}`,
-      html: `Message: ${req.body.message}`,
-    });
-    res.redirect('/?msg=Ваше сообщение успешно отправлено');
-  } catch (err) {
-    console.log(err);
-    res.redirect('/?msg=Возникли ошибки при отправлении сообщения');
+    await sgMail.send(msg);
+    await ctx.redirect('/?msg=Письмо отправлено успешно#contact');
+  } catch (error) {
+    console.error(error);
+    if (error.response) {
+      console.error(error.response.body);
+    }
+    await ctx.redirect(
+      '/?msg=Возникли ошибки при отправлении сообщения#contact'
+    );
   }
 };
