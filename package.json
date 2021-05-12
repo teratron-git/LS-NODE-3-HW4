@@ -12,7 +12,7 @@
     "express-session": "^1.17.1",
     "uuid": "^8.1.0",
     "lowdb": "^1.0.0",
-    "nodemailer": "^6.4.8",
+    "nodemailer": "^6.4.16",
     "nodemailer-sendgrid-transport": "^0.2.0"
   },
   "devDependencies": {
